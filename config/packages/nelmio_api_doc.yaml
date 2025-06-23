@@ -1,0 +1,12 @@
+nelmio_api_doc:
+    documentation:
+        info:
+            title: Ledger Service API
+            description: Basic multi-currency ledger service
+            version: 1.0.0
+    areas:
+        default:
+            path_patterns:
+                - ^/ledgers
+                - ^/transactions
+                - ^/balances
