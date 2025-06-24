@@ -6,14 +6,20 @@ namespace App\Controller;
 
 use App\Entity\Ledger;
 use Doctrine\ORM\EntityManagerInterface;
+use Psr\Log\LoggerInterface;
+use Ramsey\Uuid\Uuid;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Routing\Attribute\Route;
 use OpenApi\Attributes as OA;
 
 #[Route('/balances')]
 final class BalanceController extends AbstractController
 {
+    public function __construct(private readonly LoggerInterface $logger) {}
+
     #[Route('/{ledgerId}', name: 'get_balance', methods: ['GET'])]
     #[OA\Get(
         summary: "Get the current balance of a ledger",
@@ -42,22 +48,24 @@ final class BalanceController extends AbstractController
     )]
     public function getBalance(string $ledgerId, EntityManagerInterface $em): JsonResponse
     {
-        $ledger = $em->getRepository(Ledger::class)->find($ledgerId);
-        if (!$ledger) {
-            return $this->json(['error' => 'Ledger not found'], 404);
+        if (!Uuid::isValid($ledgerId)) {
+            throw new BadRequestHttpException('Invalid UUID format');
         }
 
-        $transactions = $ledger->getTransactions();
+        $ledger = $em->getRepository(Ledger::class)->find($ledgerId);
+
+        if (!$ledger) {
+            throw new NotFoundHttpException('Ledger not found');
+        }
 
         $balances = [];
-        foreach ($transactions as $transaction) {
+
+        foreach ($ledger->getTransactions() as $transaction) {
             $currency = $transaction->getCurrency();
             $amount = (float)$transaction->getAmount();
             $type = $transaction->getType();
 
-            if (!isset($balances[$currency])) {
-                $balances[$currency] = 0.0;
-            }
+            $balances[$currency] ??= 0.0;
 
             if ($type === 'credit') {
                 $balances[$currency] += $amount;
@@ -65,6 +73,11 @@ final class BalanceController extends AbstractController
                 $balances[$currency] -= $amount;
             }
         }
+
+        $this->logger->info('Balance calculated', [
+            'ledgerId' => $ledgerId,
+            'balances' => $balances
+        ]);
 
         return $this->json($balances);
     }

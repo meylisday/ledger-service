@@ -22,6 +22,7 @@
         "symfony/framework-bundle": "7.3.*",
         "symfony/http-client": "7.3.*",
         "symfony/maker-bundle": "^1.63",
+        "symfony/rate-limiter": "7.3.*",
         "symfony/runtime": "7.3.*",
         "symfony/serializer": "7.3.*",
         "symfony/twig-bundle": "7.3.*",
