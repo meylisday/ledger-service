@@ -16,3 +16,4 @@ services:
             $apiLimiter: '@limiter.api_limit'
         tags:
             - { name: kernel.event_listener, event: kernel.request, priority: 100 }
+    App\Service\MockCurrencyConverter: ~
